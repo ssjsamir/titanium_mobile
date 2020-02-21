@@ -5,7 +5,6 @@
  * Licensed under the terms of the Apache Public License
  * Please see the LICENSE included with this distribution for details.
  */
-/* global kroll */
 'use strict';
 
 var tiBinding = kroll.binding('Titanium'),
@@ -39,8 +38,8 @@ bootstrap.defineLazyBinding(Titanium, 'API');
 // Context-bound modules -------------------------------------------------
 //
 // Specialized modules that require binding context specific data
-// within a script execution scope. This is how Ti.UI.currentWindow,
-// Ti.Android.currentService, and others are implemented.
+// within a script execution scope. This is how Ti.Android.currentService,
+// and others are implemented.
 function TitaniumWrapper(context) {
 	var sourceUrl = this.sourceUrl = context.sourceUrl;
 
@@ -48,28 +47,15 @@ function TitaniumWrapper(context) {
 	this.global = context.global;
 
 	this.Android = new AndroidWrapper(context);
-	this.UI = new UIWrapper(context, this.Android);
 
 	var scopeVars = new kroll.ScopeVars({
 		sourceUrl: sourceUrl,
-		module: context.module,
 		currentService: this.Android.currentService
 	});
 	Titanium.bindInvocationAPIs(this, scopeVars);
 }
 TitaniumWrapper.prototype = Titanium;
 Titanium.Wrapper = TitaniumWrapper;
-
-function UIWrapper(context, Android) {
-	this.currentWindow = context.currentWindow;
-	this.currentTab = context.currentTab;
-	this.currentTabGroup = context.currentTabGroup;
-
-	if (!context.currentWindow && Android.currentActivity) {
-		this.currentWindow = Android.currentActivity.window;
-	}
-}
-UIWrapper.prototype = Titanium.UI;
 
 function AndroidWrapper(context) {
 	this.currentService = context.currentService;
@@ -171,13 +157,13 @@ bootstrap.defineLazyBinding(Titanium, 'API');
 // in a circular reference loop.
 Object.defineProperty(Titanium.TiView.prototype, 'toJSON', {
 	value: function () {
-		var keys = Object.keys(this);
-		var keyCount = keys.length;
-		var serialized = {};
+		const keys = Object.keys(this);
+		const keyCount = keys.length;
+		const serialized = {};
 
-		for (var i = 0; i < keyCount; i++) {
-			var k = keys[i];
-			if (k === 'parent') {
+		for (let i = 0; i < keyCount; i++) {
+			const k = keys[i];
+			if (k === 'parent' || k.charAt(0) === '_') {
 				continue;
 			}
 			serialized[k] = this[k];
@@ -190,13 +176,13 @@ Object.defineProperty(Titanium.TiView.prototype, 'toJSON', {
 
 Object.defineProperty(Titanium.UI.NavigationWindow.prototype, 'toJSON', {
 	value: function () {
-		var keys = Object.keys(this);
-		var keyCount = keys.length;
-		var serialized = {};
+		const keys = Object.keys(this);
+		const keyCount = keys.length;
+		const serialized = {};
 
-		for (var i = 0; i < keyCount; i++) {
-			var k = keys[i];
-			if (k === 'parent' || k === 'window') {
+		for (let i = 0; i < keyCount; i++) {
+			const k = keys[i];
+			if (k === 'parent' || k === 'window' || k.charAt(0) === '_') {
 				continue;
 			}
 			serialized[k] = this[k];
@@ -209,13 +195,13 @@ Object.defineProperty(Titanium.UI.NavigationWindow.prototype, 'toJSON', {
 
 Object.defineProperty(Titanium.Activity.prototype, 'toJSON', {
 	value: function () {
-		var keys = Object.keys(this);
-		var keyCount = keys.length;
-		var serialized = {};
+		const keys = Object.keys(this);
+		const keyCount = keys.length;
+		const serialized = {};
 
-		for (var i = 0; i < keyCount; i++) {
-			var k = keys[i];
-			if (k === 'activity' || k === 'window' || k === 'intent') {
+		for (let i = 0; i < keyCount; i++) {
+			const k = keys[i];
+			if (k === 'window' || k === 'intent' || k.charAt(0) === '_') {
 				continue;
 			}
 			serialized[k] = this[k];

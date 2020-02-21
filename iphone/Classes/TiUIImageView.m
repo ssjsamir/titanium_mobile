@@ -309,9 +309,11 @@ DEFINE_EXCEPTIONS
     // but after we've detached our view.  In which case, we need to just ignore this
     return;
   }
-  UIImageView *iv = [self imageView];
-  iv.image = image;
+
+  [self setTintedImage:image];
+
   if (placeholderLoading) {
+    UIImageView *iv = [self imageView];
     iv.alpha = 0;
 
     [(TiViewProxy *)[self proxy] contentsWillChange];
@@ -450,7 +452,7 @@ DEFINE_EXCEPTIONS
     // TODO: Use the full image size here?  Auto width/height is going to be changed once the image is loaded.
     autoWidth = imageToUse.size.width;
     autoHeight = imageToUse.size.height;
-    [self imageView].image = imageToUse;
+    [self setTintedImage:imageToUse];
   }
 }
 
@@ -480,34 +482,24 @@ DEFINE_EXCEPTIONS
       if (range.location != NSNotFound) {
         imageArg = [pathStr substringFromIndex:range.location + 5];
       }
+
       //remove suffixes.
       imageArg = [imageArg stringByReplacingOccurrencesOfString:@"@3x" withString:@""];
       imageArg = [imageArg stringByReplacingOccurrencesOfString:@"@2x" withString:@""];
       imageArg = [imageArg stringByReplacingOccurrencesOfString:@"~iphone" withString:@""];
       imageArg = [imageArg stringByReplacingOccurrencesOfString:@"~ipad" withString:@""];
-      if (imageArg != nil) {
-        unsigned char digest[CC_SHA1_DIGEST_LENGTH];
-        NSData *stringBytes = [imageArg dataUsingEncoding:NSUTF8StringEncoding];
-        if (CC_SHA1([stringBytes bytes], (CC_LONG)[stringBytes length], digest)) {
-          // SHA-1 hash has been calculated and stored in 'digest'.
-          NSMutableString *sha = [[NSMutableString alloc] init];
-          for (int i = 0; i < CC_SHA1_DIGEST_LENGTH; i++) {
-            [sha appendFormat:@"%02x", digest[i]];
-          }
-          [sha appendString:@"."];
-          [sha appendString:[img pathExtension]];
-          image = [UIImage imageNamed:sha];
-          RELEASE_TO_NIL(sha)
-        }
-      }
+
+      image = [UIImage imageNamed:imageArg];
+
       if (image == nil) {
         image = [UIImage imageWithContentsOfFile:[img path]];
       }
+
       if (image != nil) {
         UIImage *imageToUse = [self rotatedImage:image];
         autoWidth = imageToUse.size.width;
         autoHeight = imageToUse.size.height;
-        [self imageView].image = imageToUse;
+        [self setTintedImage:imageToUse];
         [self fireLoadEventWithState:@"image"];
       } else {
         [self loadDefaultImage:imageSize];
@@ -533,9 +525,21 @@ DEFINE_EXCEPTIONS
         autoWidth = autoWidth / 2;
         autoHeight = autoHeight / 2;
       }
-      [self imageView].image = imageToUse;
+      [self setTintedImage:imageToUse];
       [self fireLoadEventWithState:@"image"];
     }
+  }
+}
+
+- (void)setTintedImage:(UIImage *)image
+{
+  id tintColor = [self.proxy valueForUndefinedKey:@"tintColor"];
+
+  if (tintColor != nil) {
+    [[self imageView] setImage:[image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate]];
+    [[self imageView] setTintColor:[TiUtils colorValue:tintColor].color];
+  } else {
+    [[self imageView] setImage:image];
   }
 }
 
@@ -656,6 +660,15 @@ DEFINE_EXCEPTIONS
   [self updateContentMode];
 }
 
+- (void)setTintColor_:(id)value
+{
+  ENSURE_TYPE_OR_NIL(value, NSObject);
+  UIImageRenderingMode renderingMode = value ? UIImageRenderingModeAlwaysTemplate : UIImageRenderingModeAlwaysOriginal;
+
+  [imageView setImage:[[imageView image] imageWithRenderingMode:renderingMode]];
+  [imageView setTintColor:value ? [[TiUtils colorValue:value] color] : nil];
+}
+
 - (void)setImage_:(id)arg
 {
   id currentImage = [self.proxy valueForUndefinedKey:@"image"];
@@ -683,21 +696,13 @@ DEFINE_EXCEPTIONS
     return;
   }
 
-  [imageview setImage:image];
+  [self setTintedImage:image];
+
   [(TiViewProxy *)[self proxy] contentsWillChange]; // Have to resize the proxy view to fit new subview size, if necessary
 
   if (currentImage != image) {
     [self fireLoadEventWithState:@"image"];
   }
-}
-
-- (void)setTintColor_:(id)value
-{
-  ENSURE_TYPE_OR_NIL(value, NSString);
-  UIImageRenderingMode renderingMode = value ? UIImageRenderingModeAlwaysTemplate : UIImageRenderingModeAlwaysOriginal;
-
-  [imageView setImage:[[imageView image] imageWithRenderingMode:renderingMode]];
-  [imageView setTintColor:value ? [[TiUtils colorValue:value] _color] : nil];
 }
 
 - (void)setImages_:(id)args

@@ -89,9 +89,9 @@ public class ContactsModule extends KrollModule implements TiActivityResultHandl
 		TiBaseActivity.registerPermissionRequestCallback(TiC.PERMISSION_CODE_CONTACTS, permissionCallback,
 														 getKrollObject());
 		Activity currentActivity = TiApplication.getInstance().getCurrentActivity();
-		// Requesting for READ_CONTACTS will also enable WRITE_CONTACTS if the permission is set in the manifest.
-		currentActivity.requestPermissions(new String[] { Manifest.permission.READ_CONTACTS },
-										   TiC.PERMISSION_CODE_CONTACTS);
+		currentActivity.requestPermissions(
+			new String[] { Manifest.permission.READ_CONTACTS, Manifest.permission.WRITE_CONTACTS },
+			TiC.PERMISSION_CODE_CONTACTS);
 	}
 
 	@Kroll.method
@@ -135,16 +135,6 @@ public class ContactsModule extends KrollModule implements TiActivityResultHandl
 	}
 
 	@Kroll.method
-	public PersonProxy getPersonByID(long id)
-	{
-		Log.w(
-			TAG,
-			"Ti.Contacts.getPersonByID() has been deprecated in favor of Ti.Contacts.getPersonByIdentifier() for cross-platform parity",
-			Log.DEBUG_MODE);
-		return contactsApi.getPersonById(id);
-	}
-
-	@Kroll.method
 	public PersonProxy getPersonByIdentifier(long id)
 	{
 		return contactsApi.getPersonById(id);
@@ -154,14 +144,6 @@ public class ContactsModule extends KrollModule implements TiActivityResultHandl
 	public void removePerson(PersonProxy person)
 	{
 		contactsApi.removePerson(person);
-	}
-
-	@Kroll.method
-	public void requestAuthorization(KrollFunction function)
-	{
-		KrollDict dict = new KrollDict();
-		dict.putCodeAndMessage(TiC.ERROR_CODE_NO_ERROR, null);
-		function.callAsync(getKrollObject(), dict);
 	}
 
 	@Kroll.method

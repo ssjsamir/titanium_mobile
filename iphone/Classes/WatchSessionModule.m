@@ -1,6 +1,6 @@
 /**
  * Appcelerator Titanium Mobile
- * Copyright (c) 2015 by Appcelerator, Inc. All Rights Reserved.
+ * Copyright (c) 2015-Present by Appcelerator, Inc. All Rights Reserved.
  * Licensed under the terms of the Apache Public License
  * Please see the LICENSE included with this distribution for details.
  */
@@ -8,6 +8,7 @@
 #ifdef USE_TI_WATCHSESSION
 
 #import "WatchSessionModule.h"
+#import <TitaniumKit/TiBlob.h>
 #import <TitaniumKit/TiEvaluator.h>
 #import <TitaniumKit/TiUtils.h>
 
@@ -137,7 +138,7 @@
 
 - (NSNumber *)hasContentPending
 {
-  if ([TiUtils isIOSVersionOrGreater:@"10.0"] && [WCSession isSupported]) {
+  if ([WCSession isSupported]) {
     return NUMBOOL([[self watchSession] hasContentPending]);
   }
 
@@ -146,7 +147,7 @@
 
 - (NSNumber *)remainingComplicationUserInfoTransfers
 {
-  if ([TiUtils isIOSVersionOrGreater:@"10.0"] && [WCSession isSupported]) {
+  if ([WCSession isSupported]) {
     return NUMUINTEGER([[self watchSession] remainingComplicationUserInfoTransfers]);
   }
 
@@ -394,7 +395,7 @@
                                               nil];
       [dict addEntriesFromDictionary:errorinfo];
     } else {
-      downloadedData = [[[TiBlob alloc] _initWithPageContext:[self executionContext] andFile:[destinationURL path]] autorelease];
+      downloadedData = [[[TiBlob alloc] initWithFile:[destinationURL path]] autorelease];
       NSDictionary *success = [NSDictionary dictionaryWithObjectsAndKeys:NUMBOOL(YES), @"success",
                                             NUMINT(0), @"errorCode",
                                             @"", @"message",
@@ -485,10 +486,8 @@
     [dict setObject:[self activationState] forKey:@"activationState"];
   }
 
-  if ([TiUtils isIOSVersionOrGreater:@"10.0"]) {
-    [dict setObject:[self hasContentPending] forKey:@"hasContentPending"];
-    [dict setObject:[self remainingComplicationUserInfoTransfers] forKey:@"remainingComplicationUserInfoTransfers"];
-  }
+  [dict setObject:[self hasContentPending] forKey:@"hasContentPending"];
+  [dict setObject:[self remainingComplicationUserInfoTransfers] forKey:@"remainingComplicationUserInfoTransfers"];
 
   return dict;
 }

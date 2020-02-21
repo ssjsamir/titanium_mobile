@@ -6,9 +6,23 @@ description: |
     A 2D affine transformation can be  represented by a 3 by 3 matrix:
 
     <table>
-    <tr><td><i>a</i></td><td><i>b</i></td><td>0</td></tr>
-    <tr><td><i>c</i></td><td><i>d</i></td><td>0</td></tr>
-    <tr><td><i>tx</i></td><td><i>ty</i></td><td>1</td></tr>
+      <tbody>
+        <tr>
+          <td><i>a</i></td>
+          <td><i>b</i></td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <td><i>c</i></td>
+          <td><i>d</i></td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <td><i>tx</i></td>
+          <td><i>ty</i></td>
+          <td>1</td>
+        </tr>
+      </tbody>
     </table>
 
     The third column is constant (0,0,1).
@@ -105,7 +119,7 @@ methods:
 
       - name: angle
         summary: |
-            Angle to rotate to, in degrees. On Android, if `angleTo` is specified, this specifies
+            Angle to rotate to, in degrees. On Android, if `toAngle` is specified, this specifies
             the starting angle for a rotation animation.
         type: Number
 
@@ -274,7 +288,7 @@ properties:
         Point to rotate around, specified as a dictionary object with `x` and `y`
         properties, where { x: 0.5, y: 0.5 } represents the center of whatever is being
         rotated.
-    type: Dictionary
+    type: Point
     optional: true
     default: (0.5, 0.5)
     platforms: [android]

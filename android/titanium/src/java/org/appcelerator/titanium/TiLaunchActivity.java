@@ -16,6 +16,7 @@ import org.appcelerator.titanium.util.TiUrl;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.SystemClock;
 
 /**
  * Titanium launch activities have a single TiContext and launch an associated
@@ -40,6 +41,8 @@ public abstract class TiLaunchActivity extends TiBaseActivity
 	 * @return The Javascript URL that this Activity should run
 	 */
 	public abstract String getUrl();
+
+	private boolean hasLoadedScript = false;
 
 	/**
 	 * The JavaScript URL that should be ran for the given TiJSActivity derived class name.
@@ -92,12 +95,7 @@ public abstract class TiLaunchActivity extends TiBaseActivity
 
 	protected void loadScript()
 	{
-		try {
-			String fullUrl = resolveUrl(this.url);
-			KrollRuntime.getInstance().runModule(KrollAssetHelper.readAsset(fullUrl), fullUrl, activityProxy);
-		} finally {
-			Log.d(TAG, "Signal JS loaded", Log.DEBUG_MODE);
-		}
+		TiApplication.launch();
 	}
 
 	@Override
@@ -131,7 +129,7 @@ public abstract class TiLaunchActivity extends TiBaseActivity
 				}
 				startActivity(resumeIntent);
 				finish();
-				overridePendingTransition(0, 0);
+				overridePendingTransition(android.R.anim.fade_in, 0);
 			} else {
 				// Launch a new root activity instance with JSActivity's intent embedded within launch intent.
 				Intent mainIntent = getPackageManager().getLaunchIntentForPackage(getPackageName());
@@ -146,7 +144,7 @@ public abstract class TiLaunchActivity extends TiBaseActivity
 					mainIntent.putExtra(TiC.EXTRA_TI_NEW_INTENT, getIntent());
 				}
 				finish();
-				overridePendingTransition(0, 0);
+				overridePendingTransition(android.R.anim.fade_in, 0);
 				startActivity(mainIntent);
 			}
 			return;
@@ -167,16 +165,27 @@ public abstract class TiLaunchActivity extends TiBaseActivity
 		super.onCreate(savedInstanceState);
 	}
 
-	@Override
-	protected void windowCreated(Bundle savedInstanceState)
-	{
-		super.windowCreated(savedInstanceState);
-		loadScript();
-	}
-
 	public boolean isJSActivity()
 	{
 		return false;
+	}
+
+	@Override
+	protected void onResume()
+	{
+		// Prevent script from loading on future resumes
+		if (!hasLoadedScript) {
+			hasLoadedScript = true;
+			loadScript();
+			Log.d(TAG, "Launched in " + (SystemClock.uptimeMillis() - TiApplication.START_TIME_MS) + " ms");
+		}
+		super.onResume();
+
+		// Prevent duplicate launch animation.
+		// Windows opened before TiRootActivity has animated may cause an unwanted stutter animation.
+		if (TiApplication.firstOnActivityStack()) {
+			overridePendingTransition(0, 0);
+		}
 	}
 
 	@Override

@@ -16,7 +16,6 @@ JSClassRef KrollMethodClassRef = NULL;
 
 JSValueRef KrollCallAsFunction(JSContextRef jsContext, JSObjectRef func, JSObjectRef thisObj, size_t argCount, const JSValueRef arguments[], JSValueRef *exception)
 {
-  waitForMemoryPanicCleared();
   NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
   KrollMethod *o = (KrollMethod *)JSObjectGetPrivate(func);
   @try {
@@ -68,7 +67,6 @@ JSValueRef KrollCallAsFunction(JSContextRef jsContext, JSObjectRef func, JSObjec
 
 JSValueRef KrollCallAsNamedFunction(JSContextRef jsContext, JSObjectRef func, JSObjectRef thisObj, size_t argCount, const JSValueRef arguments[], JSValueRef *exception)
 {
-  waitForMemoryPanicCleared();
   NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
   KrollMethod *o = (KrollMethod *)JSObjectGetPrivate(thisObj);
@@ -231,7 +229,7 @@ JSValueRef KrollCallAsNamedFunction(JSContextRef jsContext, JSObjectRef func, JS
     // This is the code path followed for delegating access for soemthing like
     // Ti.UI.Label#setText(). Which delegates through TiProxy.m TiProxyDelegate code
     // Other code path is handled in KrollObject.m
-    DebugLog(@"[WARN] Automatic setter methods for properties are deprecated in SDK 8.0.0 and will be removed in SDK 9.0.0. Please modify the property in standard JS style: obj.%@ = value; or obj['%@'] = value;", name, name);
+    DebugLog(@"[WARN] Automatic setter methods for properties are deprecated in SDK 8.0.0 and will be removed in SDK 10.0.0. Please modify the property in standard JS style: obj.%@ = value; or obj['%@'] = value;", name, name);
     id newValue = [KrollObject nonNull:[args objectAtIndex:0]];
     [self updateJSObjectWithValue:newValue forKey:name];
     [target setValue:newValue forKey:name];
@@ -243,7 +241,7 @@ JSValueRef KrollCallAsNamedFunction(JSContextRef jsContext, JSObjectRef func, JS
     // This is the code path followed for delegating access for something like
     // Ti.UI.Label#getText(). Which delegates through TiProxy.m TiProxyDelegate code
     // Other code path is handled in KrollObject.m
-    DebugLog(@"[WARN] Automatic getter methods for properties are in SDK 8.0.0 and will be removed in SDK 9.0.0. Please access the property in standard JS style: obj.%@ or obj['%@']", name, name);
+    DebugLog(@"[WARN] Automatic getter methods for properties are deprecated in SDK 8.0.0 and will be removed in SDK 10.0.0. Please access the property in standard JS style: obj.%@ or obj['%@']", name, name);
     // hold, see below
     id result = [target valueForKey:name];
     [self updateJSObjectWithValue:result forKey:name];

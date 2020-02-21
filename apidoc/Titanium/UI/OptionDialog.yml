@@ -6,12 +6,20 @@ summary: |
     be added below the options.
 description: |
     <table id="platformComparison">
-      <tr>
-        <td><img src="images/optiondialog/optiondialog_android.png" height="75" /></td>
-        <td><img src="images/optiondialog/optiondialog_iphone.png" height="75" /></td>
-        <td><img src="images/optiondialog/optiondialog_ipad.png" height="75" /></td>
-      </tr>
-      <tr><th>Android</th><th>iPhone</th><td>iPad</td></tr>
+      <tbody>
+        <tr>
+          <td><img src="images/optiondialog/optiondialog_android.png" height="75" /></td>
+          <td><img src="images/optiondialog/optiondialog_iphone.png" height="75" /></td>
+          <td><img src="images/optiondialog/optiondialog_ipad.png" height="75" /></td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <th>Android</th>
+          <th>iPhone</th>
+          <th>iPad</th>
+        </tr>
+      </tfoot>
     </table>
 
     An option dialog is created using <Titanium.UI.createOptionDialog> or Alloy `<OptionDialog>`
@@ -112,6 +120,7 @@ events:
         type: Number
         platforms: [iphone, ipad]
 
+# FIXME: I think Android does support AnimatedOptions for show/hide (separately, versus how ios only really takes show and uses the animated value for hide), defaulting to false
 methods:
   - name: show
     summary: Shows this dialog.
@@ -120,6 +129,7 @@ methods:
         `params` argument, as a popover-like dialog attached to another view or control.
     parameters:
       - name: params
+        # FIXME: I think this is used on iOS, not just iPad
         summary: Argument containing parameters for this method. Only used on iPad.
         type: showParams
         optional: true
@@ -225,7 +235,8 @@ properties:
     platforms: [android, iphone, ipad]
 
   - name: selectedIndex
-    summary: Defines the default selected option.
+    summary: Defines the default selected option. Since `8.1.0`, if not defined or -1 it will show a
+        normal list instead of radio buttons.
     platforms: [android]
     type: Number
     availability: creation
@@ -312,7 +323,8 @@ examples:
 
   - title: Alloy XML Markup
     example: |
-        Previous example as an Alloy view.
+        Previous example as an Alloy view. You can set [cancel](Titanium.UI.OptionDialog.cancel)
+        and [destructive](Titanium.UI.OptionDialog.destructive) on a `<Option/>` tag.
 
         optiondialog.xml:
 
@@ -328,9 +340,9 @@ examples:
 
                         <!-- The Options tag sets the options property. -->
                         <Options>
-                            <Option>Confirm</Option>
+                            <Option destructive="true">Confirm</Option>
                             <Option platform="ios">Help</Option>
-                            <Option>Cancel</Option>
+                            <Option cancel="true">Cancel</Option>
                         </Options>
 
                         <!-- The ButtonNames tag sets the Android-only buttonNames property. -->
@@ -353,6 +365,7 @@ examples:
                 $.dialog.show();
             }
 ---
+# FIXME: I don't think we actually take any args any more, it inherits the animated value from show on iOS!
 name: hideParams
 summary: Dictionary of options for the <Titanium.UI.OptionDialog.hide> method.
 since: 2.0.0
@@ -372,6 +385,7 @@ properties:
   - name: animated
     summary: Determines whether to animate the dialog as it is shown.
     type: Boolean
+    optional: true
 
   - name: view
     summary: View to which to attach the dialog.
@@ -383,3 +397,4 @@ properties:
         Setting the x, y coordinates to (0, 0) places the dialog in the top-left corner of the
         view object.  Set both the `width` and `height` properties to 1.
     type: Dimension
+    optional: true

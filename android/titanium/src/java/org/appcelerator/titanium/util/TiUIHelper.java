@@ -42,7 +42,8 @@ import org.appcelerator.titanium.view.TiDrawableReference;
 import org.appcelerator.titanium.view.TiUIView;
 
 import android.app.Activity;
-import android.support.v7.app.AlertDialog;
+import android.graphics.drawable.PaintDrawable;
+import androidx.appcompat.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
@@ -57,7 +58,6 @@ import android.graphics.ColorFilter;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
-import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.Shader;
 import android.graphics.Typeface;
@@ -82,8 +82,6 @@ import android.view.View;
 import android.view.View.MeasureSpec;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.TextView;
-
-import com.appcelerator.aps.APSAnalyticsMeta;
 
 /**
  * A set of utility methods focused on UI and View operations.
@@ -232,7 +230,7 @@ public class TiUIHelper
 											 .create();
 					if (activity instanceof TiBaseActivity) {
 						TiBaseActivity baseActivity = (TiBaseActivity) activity;
-						baseActivity.addDialog(baseActivity.new DialogWrapper(
+						baseActivity.addDialog(new TiBaseActivity.DialogWrapper(
 							dialog, true, new WeakReference<TiBaseActivity>(baseActivity)));
 						dialog.setOwnerActivity(activity);
 					}
@@ -642,15 +640,15 @@ public class TiUIHelper
 		return new LayerDrawable(layers.toArray(new Drawable[layers.size()]));
 	}
 
-	private static final int[] BACKGROUND_DEFAULT_STATE_1 = { android.R.attr.state_window_focused,
-															  android.R.attr.state_enabled };
-	private static final int[] BACKGROUND_DEFAULT_STATE_2 = { android.R.attr.state_enabled };
-	private static final int[] BACKGROUND_SELECTED_STATE = { android.R.attr.state_window_focused,
-															 android.R.attr.state_enabled,
-															 android.R.attr.state_pressed };
-	private static final int[] BACKGROUND_FOCUSED_STATE = { android.R.attr.state_focused,
-															android.R.attr.state_window_focused,
-															android.R.attr.state_enabled };
+	public static final int[] BACKGROUND_DEFAULT_STATE_1 = { android.R.attr.state_window_focused,
+															 android.R.attr.state_enabled };
+	public static final int[] BACKGROUND_DEFAULT_STATE_2 = { android.R.attr.state_enabled };
+	public static final int[] BACKGROUND_SELECTED_STATE = { android.R.attr.state_window_focused,
+															android.R.attr.state_enabled,
+															android.R.attr.state_pressed };
+	public static final int[] BACKGROUND_FOCUSED_STATE = { android.R.attr.state_focused,
+														   android.R.attr.state_window_focused,
+														   android.R.attr.state_enabled };
 	public static final int[] BACKGROUND_DISABLED_STATE = { -android.R.attr.state_enabled };
 
 	public static StateListDrawable buildBackgroundDrawable(String image, boolean tileImage, String color,
@@ -884,45 +882,61 @@ public class TiUIHelper
 
 	private static String getResourceKeyForImage(String url)
 	{
-		if (resourceImageKeys.containsKey(url)) {
-			return resourceImageKeys.get(url);
+		// Validate argument.
+		if ((url == null) || url.isEmpty()) {
+			return null;
 		}
 
+		// Check if URL's "res" name has been fetched before.
+		if (TiUIHelper.resourceImageKeys.containsKey(url)) {
+			return TiUIHelper.resourceImageKeys.get(url);
+		}
+
+		// If given URL contains "/Resources/images/", then it references an APK "res" file.
+		// Fetch its subpath if this the case.
 		Pattern pattern = Pattern.compile("^.*/Resources/images/(.*$)");
 		Matcher matcher = pattern.matcher(url);
 		if (!matcher.matches()) {
 			return null;
 		}
-
-		String chopped = matcher.group(1);
-		if (chopped == null) {
+		String path = matcher.group(1);
+		if (path == null) {
 			return null;
 		}
 
-		chopped = chopped.toLowerCase();
-		String forHash = chopped;
-		if (forHash.endsWith(".9.png")) {
-			forHash = forHash.replace(".9.png", ".png");
-		}
-		String withoutExtension = chopped;
-
-		if (chopped.matches("^.*\\..*$")) {
-			if (chopped.endsWith(".9.png")) {
-				withoutExtension = chopped.substring(0, chopped.lastIndexOf(".9.png"));
-			} else {
-				withoutExtension = chopped.substring(0, chopped.lastIndexOf('.'));
+		// This is a "res" drawable references. Remove file extension since Android strips them off in built app.
+		final String NINE_PATCH_EXTENSION = ".9.png";
+		String pathWithoutExtension = path;
+		int index = -1;
+		if (path.toLowerCase().endsWith(NINE_PATCH_EXTENSION)) {
+			index = path.length() - NINE_PATCH_EXTENSION.length();
+		} else {
+			index = path.lastIndexOf('.');
+			if ((index >= 0) && (path.indexOf('/', index) >= 0)) {
+				index = -1;
 			}
 		}
+		if (index > 0) {
+			pathWithoutExtension = path.substring(0, index);
+		} else if (index == 0) {
+			pathWithoutExtension = null;
+		}
 
-		String cleanedWithoutExtension = withoutExtension.replaceAll("[^a-z0-9_]", "_");
-		StringBuilder result = new StringBuilder(100);
-		result.append(cleanedWithoutExtension.substring(0, Math.min(cleanedWithoutExtension.length(), 80)));
-		result.append("_");
-		result.append(TiDigestUtils.md5Hex(forHash).substring(0, 10));
+		// Handle extracted "res" file path.
+		if ((pathWithoutExtension != null) && !pathWithoutExtension.isEmpty()) {
+			// If "res" file path is invalid, then make it valid.
+			// Must be all lower-case, can only contain letters/number, and cannot start with a number.
+			pathWithoutExtension = pathWithoutExtension.toLowerCase().replaceAll("[^a-z0-9_]", "_");
+			if (Character.isDigit(pathWithoutExtension.charAt(0))) {
+				pathWithoutExtension = "_" + pathWithoutExtension;
+			}
 
-		String sResult = result.toString();
-		resourceImageKeys.put(url, sResult);
-		return sResult;
+			// Add "res" path to dictionary for fast access later.
+			TiUIHelper.resourceImageKeys.put(url, pathWithoutExtension);
+		}
+
+		// Return the "res" file path for given URL.
+		return pathWithoutExtension;
 	}
 
 	public static int getResourceId(String url)
@@ -1115,20 +1129,16 @@ public class TiUIHelper
 	 */
 	public static void showSoftKeyboard(View view, boolean show)
 	{
-		InputMethodManager imm = (InputMethodManager) view.getContext().getSystemService(Activity.INPUT_METHOD_SERVICE);
-
+		final InputMethodManager imm =
+			(InputMethodManager) view.getContext().getSystemService(Activity.INPUT_METHOD_SERVICE);
 		if (imm != null) {
-			boolean useForce =
-				(Build.VERSION.SDK_INT <= Build.VERSION_CODES.DONUT || Build.VERSION.SDK_INT >= 8) ? true : false;
-			String model = APSAnalyticsMeta.getModel();
-			if (model.toLowerCase().startsWith("droid")) {
-				useForce = true;
+			if (!view.hasFocus()) {
+				view.requestFocus();
 			}
 			if (show) {
-				imm.showSoftInput(view, useForce ? InputMethodManager.SHOW_FORCED : InputMethodManager.SHOW_IMPLICIT);
+				imm.showSoftInput(view, InputMethodManager.SHOW_FORCED);
 			} else {
-				imm.hideSoftInputFromWindow(view.getWindowToken(),
-											useForce ? 0 : InputMethodManager.HIDE_IMPLICIT_ONLY);
+				imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
 			}
 		}
 	}
@@ -1220,5 +1230,62 @@ public class TiUIHelper
 			}
 		}
 		return mUri;
+	}
+
+	/**
+	 * Helper method for getting the actual color values for Views with defined custom backgrounds
+	 * that take advantage of color state lists.
+	 */
+	public static String getBackgroundColorForState(TiBackgroundDrawable backgroundDrawable, int[] state)
+	{
+		try {
+			// TiBackgroundDrawable's background can be either PaintDrawable or StateListDrawable.
+			// Handle the cases separately.
+			Drawable simpleDrawable = backgroundDrawable.getBackground();
+			if (simpleDrawable instanceof PaintDrawable) {
+				// For backwards compatibility return null if the required state is not the default one.
+				if (state != TiUIHelper.BACKGROUND_DEFAULT_STATE_1) {
+					return null;
+				}
+				return hexStringFrom(((PaintDrawable) simpleDrawable).getPaint().getColor());
+			} else if (simpleDrawable instanceof StateListDrawable) {
+				// Get the backgroundDrawable background as a StateListDrawable.
+				StateListDrawable stateListDrawable = (StateListDrawable) simpleDrawable;
+				// Get the reflection methods.
+				Method getStateDrawableIndexMethod =
+					StateListDrawable.class.getMethod("getStateDrawableIndex", int[].class);
+				Method getStateDrawableMethod = StateListDrawable.class.getMethod("getStateDrawable", int.class);
+				// Get the disabled state's (as defined in TiUIHelper) index.
+				int index = (int) getStateDrawableIndexMethod.invoke(stateListDrawable, state);
+				// Get the drawable at the index.
+				Drawable drawable = (Drawable) getStateDrawableMethod.invoke(stateListDrawable, index);
+				// Try to get the 0 index of the result.
+				if (drawable instanceof LayerDrawable) {
+					Drawable drawableFromLayer = ((LayerDrawable) drawable).getDrawable(0);
+					// Cast it as a ColorDrawable.
+					if (drawableFromLayer instanceof ColorDrawable) {
+						// Transcript the color int to HexString.
+						String strColor = hexStringFrom(((ColorDrawable) drawableFromLayer).getColor());
+						return strColor;
+					} else {
+						Log.w(TAG, "Background drawable of unexpected type. Expected - ColorDrawable. Found - "
+									   + drawableFromLayer.getClass().toString());
+						return null;
+					}
+				} else {
+					Log.w(TAG, "Background drawable of unexpected type. Expected - LayerDrawable. Found - "
+								   + drawable.getClass().toString());
+					return null;
+				}
+			}
+		} catch (Exception e) {
+			Log.w(TAG, e.toString());
+		}
+		return null;
+	}
+
+	public static String hexStringFrom(int colorInt)
+	{
+		return String.format("#%08X", 0xFFFFFFFF & colorInt);
 	}
 }

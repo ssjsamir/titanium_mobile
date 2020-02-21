@@ -1,6 +1,6 @@
 /**
  * Appcelerator Titanium Mobile
- * Copyright (c) 2009-2018 by Appcelerator, Inc. All Rights Reserved.
+ * Copyright (c) 2009-present by Appcelerator, Inc. All Rights Reserved.
  * Licensed under the terms of the Apache Public License
  * Please see the LICENSE included with this distribution for details.
  */
@@ -91,7 +91,7 @@ static NSArray *touchEventsArray;
 
 - (void)processTempProperties:(NSDictionary *)arg
 {
-  //arg will be non nil when called from updateLayout
+  // arg will be typically be nil (was non-nil when called from removed updateLayout() method)
   if (arg != nil) {
     NSEnumerator *enumerator = [arg keyEnumerator];
     id key;
@@ -128,36 +128,6 @@ static NSArray *touchEventsArray;
 }
 #endif
 
-- (void)startLayout:(id)arg
-{
-  DebugLog(@"startLayout() method is deprecated since 3.0.0 .");
-  updateStarted = YES;
-  allowLayoutUpdate = NO;
-}
-- (void)finishLayout:(id)arg
-{
-  DebugLog(@"finishLayout() method is deprecated since 3.0.0 .");
-  updateStarted = NO;
-  allowLayoutUpdate = YES;
-  [self processTempProperties:nil];
-  allowLayoutUpdate = NO;
-}
-- (void)updateLayout:(id)arg
-{
-  DebugLog(@"updateLayout() method is deprecated since 3.0.0, use applyProperties() instead.");
-  id val = nil;
-  if ([arg isKindOfClass:[NSArray class]]) {
-    val = [arg objectAtIndex:0];
-  } else {
-    val = arg;
-  }
-  updateStarted = NO;
-  allowLayoutUpdate = YES;
-  ENSURE_TYPE_OR_NIL(val, NSDictionary);
-  [self processTempProperties:val];
-  allowLayoutUpdate = NO;
-}
-
 - (BOOL)belongsToContext:(id<TiEvaluator>)context
 {
   id<TiEvaluator> myContext = ([self executionContext] == nil) ? [self pageContext] : [self executionContext];
@@ -167,7 +137,7 @@ static NSArray *touchEventsArray;
 - (void)add:(id)arg
 {
   TiUIWindowProxy *windowProxy = nil;
-  if ([self isKindOfClass:[TiUIWindowProxy class]] && [TiUtils isIOSVersionOrGreater:@"11.0"]) {
+  if ([self isKindOfClass:[TiUIWindowProxy class]]) {
     windowProxy = (TiUIWindowProxy *)self;
     if (arg == windowProxy.safeAreaViewProxy) {
       // If adding the safeAreaViewProxy, it need to be add on window.
@@ -270,7 +240,7 @@ static NSArray *touchEventsArray;
 
 - (void)replaceAt:(id)args
 {
-  if ([self isKindOfClass:[TiUIWindowProxy class]] && [TiUtils isIOSVersionOrGreater:@"11.0"]) {
+  if ([self isKindOfClass:[TiUIWindowProxy class]]) {
     TiUIWindowProxy *windowProxy = (TiUIWindowProxy *)self;
     if (windowProxy.safeAreaViewProxy) {
       [windowProxy.safeAreaViewProxy replaceAt:args];
@@ -291,7 +261,7 @@ static NSArray *touchEventsArray;
 
 - (void)remove:(id)arg
 {
-  if ([self isKindOfClass:[TiUIWindowProxy class]] && [TiUtils isIOSVersionOrGreater:@"11.0"]) {
+  if ([self isKindOfClass:[TiUIWindowProxy class]]) {
     TiUIWindowProxy *windowProxy = (TiUIWindowProxy *)self;
     if (windowProxy.safeAreaViewProxy) {
       [windowProxy.safeAreaViewProxy remove:arg];
@@ -360,7 +330,7 @@ static NSArray *touchEventsArray;
 
 - (void)removeAllChildren:(id)arg
 {
-  if ([self isKindOfClass:[TiUIWindowProxy class]] && [TiUtils isIOSVersionOrGreater:@"11.0"]) {
+  if ([self isKindOfClass:[TiUIWindowProxy class]]) {
     TiUIWindowProxy *windowProxy = (TiUIWindowProxy *)self;
     if (windowProxy.safeAreaViewProxy) {
       [windowProxy.safeAreaViewProxy removeAllChildren:arg];
@@ -402,6 +372,13 @@ static NSArray *touchEventsArray;
     [self replaceValue:NUMBOOL(NO) forKey:@"visible" notification:YES];
   },
       NO);
+}
+
+- (void)clearMotionEffects:(id)unused
+{
+  [self.view.motionEffects enumerateObjectsUsingBlock:^(__kindof UIMotionEffect *_Nonnull obj, NSUInteger idx, BOOL *_Nonnull stop) {
+    [self.view removeMotionEffect:obj];
+  }];
 }
 
 - (id)getViewById:(id)arg
@@ -705,7 +682,7 @@ LAYOUTFLAGS_SETTER(setHorizontalWrap, horizontalWrap, horizontalWrap, [self will
     }
   }
   callback = (KrollCallback *)obj;
-  TiBlob *blob = [[[TiBlob alloc] _initWithPageContext:[self pageContext]] autorelease];
+  __block TiBlob *blob = nil;
   // we spin on the UI thread and have him convert and then add back to the blob
   // if you pass a callback function, we'll run the render asynchronously, if you
   // don't, we'll do it synchronously
@@ -741,7 +718,7 @@ LAYOUTFLAGS_SETTER(setHorizontalWrap, horizontalWrap, horizontalWrap, [self will
     UIGraphicsBeginImageContextWithOptions(size, [myview.layer isOpaque], (honorScale ? 0.0 : 1.0));
     [myview.layer renderInContext:UIGraphicsGetCurrentContext()];
     UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
-    [blob setImage:image];
+    blob = [[[TiBlob alloc] initWithImage:image] autorelease];
     [blob setMimeType:@"image/png" type:TiBlobTypeImage];
     UIGraphicsEndImageContext();
     if (callback != nil) {
@@ -1478,9 +1455,6 @@ LAYOUTFLAGS_SETTER(setHorizontalWrap, horizontalWrap, horizontalWrap, [self will
      */
     TiUIWindowProxy *windowProxy = (TiUIWindowProxy *)self;
     windowProxy.shouldExtendSafeArea = [TiUtils boolValue:[self valueForUndefinedKey:@"extendSafeArea"] def:YES];
-    if (![TiUtils isIOSVersionOrGreater:@"11.0"]) {
-      return;
-    }
 
     if (!windowProxy.safeAreaViewProxy && !windowProxy.shouldExtendSafeArea) {
       NSMutableDictionary *safeAreaProperties = [NSMutableDictionary dictionary];
@@ -2838,6 +2812,31 @@ LAYOUTFLAGS_SETTER(setHorizontalWrap, horizontalWrap, horizontalWrap, [self will
   [self replaceValue:accessibilityHidden forKey:@"accessibilityHidden" notification:NO];
 }
 
+- (NSObject *)accessibilityElement
+{
+  return self.view.accessibilityElement;
+}
+
+- (NSString *)accessibilityLabel
+{
+  return [self accessibilityElement].accessibilityLabel;
+}
+
+- (NSString *)accessibilityValue
+{
+  return [self accessibilityElement].accessibilityValue;
+}
+
+- (NSString *)accessibilityHint
+{
+  return [self accessibilityElement].accessibilityHint;
+}
+
+- (NSNumber *)accessibilityHidden
+{
+  return NUMBOOL([self accessibilityElement].accessibilityElementsHidden);
+}
+
 #pragma mark - View Templates
 
 - (void)unarchiveFromTemplate:(id)viewTemplate_
@@ -2897,19 +2896,21 @@ LAYOUTFLAGS_SETTER(setHorizontalWrap, horizontalWrap, horizontalWrap, [self will
     // TODO eval once and pass in the controller name and props as args?
     DebugLog(@"[DEBUG] Failed to load native class %@, trying Alloy widget / CommonJS module", viewTemplate.type);
     NSString *code = [NSString stringWithFormat:@"var result;"
+                                                 "var jsModule;"
                                                  "try {"
-                                                 "  var jsModule = require('/alloy/widgets/%@/controllers/widget');"
-                                                 "  if (!jsModule) {"
+                                                 "    jsModule = require('/alloy/widgets/%@/controllers/widget');"
+                                                 "} catch (error) {"
+                                                 "  try {"
                                                  "    jsModule = require('%@');"
+                                                 "  } catch (e) {"
+                                                 "    Ti.API.error('Failed to load Alloy widget / CommonJS module \"%@\" to be used as template');"
                                                  "  }"
-                                                 "  if (jsModule) {"
-                                                 "    result = function (parameters) {"
+                                                 "}"
+                                                 "if (jsModule) {"
+                                                 "  result = function (parameters) {"
                                                  "      const obj = new jsModule(parameters);"
                                                  "      return obj.getView();"
                                                  "    };"
-                                                 "  }"
-                                                 "} catch (e) {"
-                                                 "  Ti.API.error('Failed to load Alloy widget / CommonJS module \"%@\" to be used as template');"
                                                  "}"
                                                  "result;",
                                viewTemplate.type, viewTemplate.type, viewTemplate.type];

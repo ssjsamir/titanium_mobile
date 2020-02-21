@@ -14,10 +14,8 @@ import org.appcelerator.kroll.KrollDict;
 import org.appcelerator.kroll.KrollProxy;
 import org.appcelerator.kroll.common.Log;
 import org.appcelerator.titanium.TiC;
-import org.appcelerator.titanium.TiDimension;
 import org.appcelerator.titanium.proxy.TiViewProxy;
 import org.appcelerator.titanium.util.TiConvert;
-import org.appcelerator.titanium.util.TiEventHelper;
 import org.appcelerator.titanium.view.TiCompositeLayout;
 import org.appcelerator.titanium.view.TiUIView;
 
@@ -27,10 +25,9 @@ import ti.modules.titanium.ui.widget.listview.ListItemProxy;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
-import android.os.Build;
 import android.os.Parcelable;
-import android.support.v4.view.PagerAdapter;
-import android.support.v4.view.ViewPager;
+import androidx.viewpager.widget.PagerAdapter;
+import androidx.viewpager.widget.ViewPager;
 import android.util.DisplayMetrics;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -48,8 +45,8 @@ public class TiUIScrollableView extends TiUIView
 {
 	private static final String TAG = "TiUIScrollableView";
 
-	private static final int PAGE_LEFT_ID = 200;
-	private static final int PAGE_RIGHT_ID = 201;
+	private static final int PAGE_LEFT_ID = View.generateViewId();
+	private static final int PAGE_RIGHT_ID = View.generateViewId();
 
 	private final ViewPager mPager;
 	private final ArrayList<TiViewProxy> mViews;
